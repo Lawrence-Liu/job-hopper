@@ -1,0 +1,3 @@
+1. build an job description analyst to identify the key skills, experiences and requirements from a job description. Please use openai API and crewai library
+2. build a resume enhancement writer to update the original resume based on the skills, experiences and requirements identified by job description analyst
+3. build a resume stylist to convert the json formatted resume to markdown format, adding appropriate styles for a business appropriate resume
