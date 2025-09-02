@@ -19,3 +19,14 @@ enhance_resume_task:
   output_file: enhanced_resume.json
   agent: resume_enhancer
   depends_on: extract_info_task
+
+style_resume_task:
+  description: >
+    Convert the enhanced JSON resume to a Markdown formatted resume with appropriate business styles. Use the enhanced resume: {enhance_resume_task.output}.
+    Don't add any new sections or skills that are not present in the enhanced resume.
+    Ensure the Markdown is well-structured and professional, suitable for business use.
+  expected_output: >
+    Return the resume as a Markdown string, styled for business use.
+  output_file: resume.md
+  agent: resume_stylist
+  depends_on: enhance_resume_task

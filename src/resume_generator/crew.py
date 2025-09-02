@@ -8,7 +8,8 @@ from typing import List
 
 @CrewBase
 class ResumeGenerator():
-    """ResumeGenerator crew"""
+
+ 
 
     agents: List[BaseAgent]
     tasks: List[Task]
@@ -33,6 +34,14 @@ class ResumeGenerator():
             config=self.agents_config['resume_enhancer'], # type: ignore[index]
             verbose=True
         )
+    
+    @agent
+    def resume_stylist(self) -> Agent:
+        """Agent that converts the JSON resume to a styled Markdown format."""
+        return Agent(
+            config=self.agents_config['resume_stylist'], # type: ignore[index]
+            verbose=True
+        )
 
     # To learn more about structured task outputs,
     # task dependencies, and task callbacks, check out the documentation:
@@ -48,6 +57,13 @@ class ResumeGenerator():
         """Task to update the original resume based on the skills, experiences and requirements identified by job description analyst."""
         return Task(
             config=self.tasks_config['enhance_resume_task'], # type: ignore[index]
+        )
+    
+    @task
+    def style_resume_task(self) -> Task:
+        """Task to convert the enhanced JSON resume to a styled Markdown format."""
+        return Task(
+            config=self.tasks_config['style_resume_task'], # type: ignore[index]
         )
 
 
