@@ -2,3 +2,11 @@
 __pycache__/
 .DS_Store
 JD
+Lawrence_Resume.json
+jobs/
+.vscode/settings.json
+knowledge/user_preference.txt
+
+.gitignore
+src/enhanced_resume.json
+src/resume.md

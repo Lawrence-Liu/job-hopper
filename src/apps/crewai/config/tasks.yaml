@@ -1,6 +1,6 @@
 extract_info_task:
   description: >
-    Review the job description carefully and extract all required skills, qualifications, experiences: 
+    Review the job description carefully and extract all required skills, qualifications, experiences. Below is the job description:
     {job_desc}
   expected_output: >
     Return a JSON object with keys: 'skills', 'qualifications', 'responsibilities'
@@ -8,15 +8,16 @@ extract_info_task:
 
 enhance_resume_task:
   description: >
-    Update the original resume to better align with the skills, experiences, and requirements identified 
+    Update the original resume to better align with the skills, experiences, and requirements identified
     by the job description analyst. Use the extracted information from job description to clean up, rewrite and enhance
-    the resume: {original_resume}, {extract_info_task.output}. Don't add skills or qualifications that don't 
+    the resume: {original_resume}, {extract_info_task.output}. Don't add skills or qualifications that don't
     exists in my original resume. Add a section for skills and qualifications required by the job description
     but not present in the original resume.
   expected_output: >
-    Return the enhanced resume as improved text, highlighting new or updated sections, but keep the 
+    Return the enhanced resume as improved text, highlighting new or updated sections, but keep the
     original json structure.
-  output_file: enhanced_resume.json
+  output_file: >
+    {enhanced_resume_path}
   agent: resume_enhancer
   depends_on: extract_info_task
 
@@ -27,6 +28,7 @@ style_resume_task:
     Ensure the Markdown is well-structured and professional, suitable for business use.
   expected_output: >
     Return the resume as a Markdown string, styled for business use.
-  output_file: resume.md
+  output_file: >
+    {styled_resume_path}
   agent: resume_stylist
   depends_on: enhance_resume_task

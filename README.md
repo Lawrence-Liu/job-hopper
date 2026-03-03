@@ -1,6 +1,14 @@
-# ResumeGenerator Crew
+# Resume Generator (CrewAI + LangGraph)
 
-Welcome to the ResumeGenerator Crew project, powered by [crewAI](https://crewai.com). This template is designed to help you set up a multi-agent AI system with ease, leveraging the powerful and flexible framework provided by crewAI. Our goal is to enable your agents to collaborate effectively on complex tasks, maximizing their collective intelligence and capabilities.
+This project provides two implementations of the same resume enhancement pipeline:
+
+- CrewAI version (existing implementation)
+- LangGraph version (latest LangChain API + LangGraph orchestration)
+
+Code is now physically separated under:
+
+- `src/apps/crewai/`
+- `src/apps/langgraph/`
 
 ## Installation
 
@@ -12,36 +20,70 @@ First, if you haven't already, install uv:
 pip install uv
 ```
 
-Next, navigate to your project directory and install the dependencies:
+Next, create two separate UV environments (dual-environment setup):
 
-(Optional) Lock the dependencies and install them by using the CLI command:
 ```bash
-crewai install
+# CrewAI environment
+UV_PROJECT_ENVIRONMENT=.venv-crewai uv sync
+
+# LangGraph environment
+uv venv .venv-agent
+UV_PROJECT_ENVIRONMENT=.venv-agent uv pip install -r requirements/create-agent.txt
+UV_PROJECT_ENVIRONMENT=.venv-agent uv pip install -e . --no-deps
 ```
+
+Activate the one you want before running commands.
 ### Customizing
 
 **Add your `OPENAI_API_KEY` into the `.env` file**
 
-- Modify `src/resume_generator/config/agents.yaml` to define your agents
-- Modify `src/resume_generator/config/tasks.yaml` to define your tasks
-- Modify `src/resume_generator/crew.py` to add your own logic, tools and specific args
-- Modify `src/resume_generator/main.py` to add custom inputs for your agents and tasks
+- Modify `src/apps/crewai/config/agents.yaml` to define your agents
+- Modify `src/apps/crewai/config/tasks.yaml` to define your tasks
+- Modify `src/apps/crewai/crew.py` to add your own logic, tools and specific args
+- CrewAI runtime entry: `src/apps/crewai/main.py`
+- LangGraph runtime entry: `src/apps/langgraph/main.py`
 
 ## Running the Project
 
 To kickstart your crew of AI agents and begin task execution, run this from the root folder of your project:
 
+### 1) CrewAI version
+
 ```bash
-$ crewai run
+UV_PROJECT_ENVIRONMENT=.venv-crewai uv run python -c "from apps.crewai.main import run; run('./jobs/red-venture-ds-group-manager', './Lawrence_Resume.json')"
 ```
 
-This command initializes the resume-generator Crew, assembling the agents and assigning them tasks as defined in your configuration.
+### 2) LangGraph version (latest)
 
-This example, unmodified, will run the create a `report.md` file with the output of a research on LLMs in the root folder.
+```bash
+UV_PROJECT_ENVIRONMENT=.venv-agent uv run python -c "from apps.langgraph.main import run; run('./jobs/red-venture-ds-group-manager', './Lawrence_Resume.json')"
+```
+
+Both versions generate:
+
+- `jobs/<target_job>/enhanced_resume.json`
+- `jobs/<target_job>/styled_resume.md`
+
+### API (fully separate)
+
+- CrewAI API app: `apps.crewai.api:app`
+- LangGraph API app: `apps.langgraph.api:app`
+
+Run CrewAI API:
+
+```bash
+UV_PROJECT_ENVIRONMENT=.venv-crewai uv run uvicorn apps.crewai.api:app --reload --port 8000
+```
+
+Run LangGraph API:
+
+```bash
+UV_PROJECT_ENVIRONMENT=.venv-agent uv run uvicorn apps.langgraph.api:app --reload --port 8001
+```
 
 ## Understanding Your Crew
 
-The resume-generator Crew is composed of multiple AI agents, each with unique roles, goals, and tools. These agents collaborate on a series of tasks, defined in `config/tasks.yaml`, leveraging their collective skills to achieve complex objectives. The `config/agents.yaml` file outlines the capabilities and configurations of each agent in your crew.
+The resume-generator Crew is composed of multiple AI agents, each with unique roles, goals, and tools. These agents collaborate on a series of tasks, defined in `apps/crewai/config/tasks.yaml`, leveraging their collective skills to achieve complex objectives. The `apps/crewai/config/agents.yaml` file outlines the capabilities and configurations of each agent in your crew.
 
 ## Support
 
