@@ -27,7 +27,7 @@ _run_lock = asyncio.Lock()
 class EnhanceRequest(BaseModel):
     job_description: str = Field(..., description="Job description text")
     resume: str = Field(..., description="Original resume text (can be JSON string)")
-    model: str = Field(default="gpt-5-mini", description="Model name for LangGraph workflow")
+    model: str = Field(default="gemini-2.5-flash", description="Model name for LangGraph workflow")
 
 
 class EnhanceResponse(BaseModel):

@@ -1,0 +1,15 @@
+project_id = "your-gcp-project-id"
+region     = "us-central1"
+
+service_name  = "resume-langgraph-api"
+repository_id = "resume-services"
+
+# Build & push image first, then set image URL here
+image = "us-central1-docker.pkg.dev/your-gcp-project-id/resume-services/langgraph-api:latest"
+
+allow_unauthenticated = true
+
+cpu                = "1"
+memory             = "1Gi"
+min_instance_count = 0
+max_instance_count = 3

@@ -1,17 +1,24 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, TypedDict
 from uuid import uuid4
 
+import google.auth
+from google.auth.transport.requests import Request
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
 
+from dotenv import load_dotenv
+
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+load_dotenv(PROJECT_ROOT / ".env")
 
 class ExtractedInfo(BaseModel):
     skills: list[str] = Field(default_factory=list)
@@ -20,24 +27,39 @@ class ExtractedInfo(BaseModel):
 
 
 class EnhancedResumeOutput(BaseModel):
-    enhanced_resume: Dict[str, Any] = Field(default_factory=dict)
+    enhanced_resume: str
 
 
 class ResumeGraphState(TypedDict, total=False):
     job_desc: str
     original_resume: str
     extracted_info: Dict[str, Any]
-    enhanced_resume: Dict[str, Any]
+    enhanced_resume: str
     styled_resume: str
 
 
 @dataclass
 class ResumeLangGraphRunner:
-    model: str = "gpt-5-mini"
+    model: str = "gemini-2.5-flash"
     temperature: float = 0.1
+    adc_scopes: tuple[str, ...] = (
+        "https://www.googleapis.com/auth/cloud-platform",
+        "https://www.googleapis.com/auth/generative-language",
+    )
 
-    def _llm(self) -> ChatOpenAI:
-        return ChatOpenAI(model=self.model, temperature=self.temperature)
+    def _adc_credentials(self):
+        credentials, _ = google.auth.default(scopes=list(self.adc_scopes))
+        if getattr(credentials, "requires_scopes", False):
+            credentials = credentials.with_scopes(list(self.adc_scopes))
+        credentials.refresh(Request())
+        return credentials
+
+    def _llm(self) -> ChatGoogleGenerativeAI:
+        return ChatGoogleGenerativeAI(
+            model=self.model,
+            temperature=self.temperature,
+            credentials=self._adc_credentials(),
+        )
 
     def _extractor_model(self):
         return self._llm().with_structured_output(ExtractedInfo, method="function_calling")
@@ -91,6 +113,12 @@ class ResumeLangGraphRunner:
                 ),
             ]
         )
+        print(result)
+        if not result.enhanced_resume:
+            raise ValueError(
+                "LLM returned empty `enhanced_resume`. "
+                "Retry with a smaller prompt or verify model/tool-calling response format."
+            )
         return {"enhanced_resume": result.enhanced_resume}
 
     def _style_resume_node(self, state: ResumeGraphState) -> Dict[str, Any]:
@@ -136,6 +164,7 @@ class ResumeLangGraphRunner:
         styled_resume_path: str,
     ) -> Dict[str, Any]:
         app = self._build_graph()
+        print(original_resume)
         result = app.invoke(
             {
                 "job_desc": job_desc,
@@ -154,7 +183,7 @@ class ResumeLangGraphRunner:
         styled_path.parent.mkdir(parents=True, exist_ok=True)
 
         enhanced_path.write_text(
-            json.dumps(enhanced_resume, ensure_ascii=False, indent=2),
+            json.dumps(json.loads(enhanced_resume), ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
         styled_path.write_text(styled_resume, encoding="utf-8")
