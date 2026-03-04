@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -81,9 +82,9 @@ class ResumeLangGraphRunner:
     def _invoke_config(self) -> Dict[str, Any]:
         return {"configurable": {"thread_id": f"resume-agent-{uuid4()}"}}
 
-    def _extract_info_node(self, state: ResumeGraphState) -> Dict[str, Any]:
+    async def _extract_info_node(self, state: ResumeGraphState) -> Dict[str, Any]:
         extractor = self._extractor_model()
-        result = extractor.invoke(
+        result = await extractor.ainvoke(
             [
                 SystemMessage(
                     content=(
@@ -102,7 +103,7 @@ class ResumeLangGraphRunner:
         )
         return {"extracted_info": result.model_dump()}
 
-    def _enhance_resume_node(self, state: ResumeGraphState) -> Dict[str, Any]:
+    async def _enhance_resume_node(self, state: ResumeGraphState) -> Dict[str, Any]:
         enhancer = self._enhancer_model()
 
         verification_report = state.get("verification_report", {})
@@ -117,7 +118,7 @@ class ResumeLangGraphRunner:
                 "Rewrite the enhanced resume to remove unsupported claims while preserving relevance."
             )
 
-        result = enhancer.invoke(
+        result = await enhancer.ainvoke(
             [
                 SystemMessage(
                     content=(
@@ -145,10 +146,10 @@ class ResumeLangGraphRunner:
             )
         return {"enhanced_resume": result.enhanced_resume}
 
-    def _verify_resume_node(self, state: ResumeGraphState) -> Dict[str, Any]:
+    async def _verify_resume_node(self, state: ResumeGraphState) -> Dict[str, Any]:
         verifier = self._verifier_model()
         current_round = state.get("verification_round", 0) + 1
-        result = verifier.invoke(
+        result = await verifier.ainvoke(
             [
                 SystemMessage(
                     content=(
@@ -189,8 +190,8 @@ class ResumeLangGraphRunner:
             return "enhance_resume_agent"
         return "style_resume_agent"
 
-    def _style_resume_node(self, state: ResumeGraphState) -> Dict[str, Any]:
-        styled = self._llm().invoke(
+    async def _style_resume_node(self, state: ResumeGraphState) -> Dict[str, Any]:
+        styled = await self._llm().ainvoke(
             [
                 SystemMessage(
                     content=(
@@ -240,8 +241,25 @@ class ResumeLangGraphRunner:
         enhanced_resume_path: str | None = None,
         styled_resume_path: str | None = None,
     ) -> Dict[str, Any]:
+        return asyncio.run(
+            self.arun(
+                job_desc=job_desc,
+                original_resume=original_resume,
+                enhanced_resume_path=enhanced_resume_path,
+                styled_resume_path=styled_resume_path,
+            )
+        )
+
+    async def arun(
+        self,
+        *,
+        job_desc: str,
+        original_resume: str,
+        enhanced_resume_path: str | None = None,
+        styled_resume_path: str | None = None,
+    ) -> Dict[str, Any]:
         app = self._build_graph()
-        result = app.invoke(
+        result = await app.ainvoke(
             {
                 "job_desc": job_desc,
                 "original_resume": original_resume,

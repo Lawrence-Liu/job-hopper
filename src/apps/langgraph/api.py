@@ -6,7 +6,6 @@ from typing import Any, Dict
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from starlette.concurrency import run_in_threadpool
 
 
 app = FastAPI(title="Resume Generator LangGraph API", version="0.1.0")
@@ -30,13 +29,14 @@ class EnhanceResponse(BaseModel):
     source: str
 
 
-def _run_enhancement(job_desc: str, original_resume: str, model: str) -> Any:
+@app.post("/enhance", response_model=EnhanceResponse)
+async def enhance(payload: EnhanceRequest) -> EnhanceResponse:
     try:
         from .workflow import ResumeLangGraphRunner
 
-        result = ResumeLangGraphRunner(model=model).run(
-            job_desc=job_desc,
-            original_resume=original_resume,
+        result = await ResumeLangGraphRunner(model=payload.model).arun(
+            job_desc=payload.job_description,
+            original_resume=payload.resume,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"langgraph execution failed: {e}")
@@ -48,22 +48,13 @@ def _run_enhancement(job_desc: str, original_resume: str, model: str) -> Any:
             detail="Enhanced resume not produced. Check workflow and LLM credentials.",
         )
 
+    enhanced = enhanced_raw
     if isinstance(enhanced_raw, str):
         try:
-            return json.loads(enhanced_raw)
+            enhanced = json.loads(enhanced_raw)
         except json.JSONDecodeError:
-            return enhanced_raw
-    return enhanced_raw
+            pass
 
-
-@app.post("/enhance", response_model=EnhanceResponse)
-async def enhance(payload: EnhanceRequest) -> EnhanceResponse:
-    enhanced = await run_in_threadpool(
-        _run_enhancement,
-        payload.job_description,
-        payload.resume,
-        payload.model,
-    )
     return EnhanceResponse(enhanced_resume=enhanced, source="langgraph")
 
 
